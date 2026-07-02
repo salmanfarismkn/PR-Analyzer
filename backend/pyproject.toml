@@ -1,0 +1,12 @@
+[project]
+name = "pr-analyzer-backend"
+version = "0.1.0"
+description = "Backend service for PR Analyzer"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "sqlalchemy",
+  "pydantic-settings",
+  "passlib[bcrypt]"
+]
