@@ -8,5 +8,21 @@ dependencies = [
   "uvicorn",
   "sqlalchemy",
   "pydantic-settings",
-  "passlib[bcrypt]"
+  "passlib[bcrypt]",
+  "psycopg[binary]>=3.3.4",
+  "alembic>=1.18.5",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.21",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
