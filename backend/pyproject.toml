@@ -3,21 +3,21 @@ name = "pr-analyzer-backend"
 version = "0.1.0"
 description = "Backend service for PR Analyzer"
 requires-python = ">=3.11"
+
 dependencies = [
-  "fastapi",
-  "uvicorn",
-  "sqlalchemy",
-  "pydantic-settings",
-  "passlib[bcrypt]",
-  "psycopg[binary]>=3.3.4",
-  "alembic>=1.18.5",
+    "fastapi>=0.116",
+    "uvicorn[standard]>=0.35",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.16",
+    "pydantic-settings>=2.10",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.1.1",
-    "pytest-asyncio>=1.4.0",
-    "ruff>=0.15.21",
+    "pytest>=8",
+    "pytest-asyncio>=1.1",
+    "ruff>=0.12",
 ]
 
 [tool.ruff]
