@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 
-from app.api.router import router
+from app.api.router import router as api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
-
 configure_logging()
 
 app = FastAPI(
@@ -12,6 +11,8 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+app.include_router(api_router)
 
 
 @app.get("/")
@@ -22,4 +23,3 @@ async def root():
         "version": "0.1.0",
     }
 
-app.include_router(router)

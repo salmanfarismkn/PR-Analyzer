@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 
 
+
 class Repository(BaseModel):
     __tablename__ = "repository"
 
