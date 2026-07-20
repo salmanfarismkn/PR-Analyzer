@@ -7,7 +7,9 @@ class Settings(BaseSettings):
     app_name: str = "PR Sentinel"
     debug: bool = True
     database_url: str
-
+    github_api_url: str = "https://api.github.com"
+    github_token: str = ""
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
