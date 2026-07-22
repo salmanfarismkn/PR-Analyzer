@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import httpx
 
+from app.github.schemas import GitHubUser
+
 
 class GitHubClient:
     """Lightweight client for interacting with the GitHub REST API."""
@@ -23,13 +25,13 @@ class GitHubClient:
             },
         )
 
-    def get_authenticated_user(self) -> dict:
+    def get_authenticated_user(self) -> GitHubUser:
         """Fetch the currently authenticated GitHub user."""
 
         response = self._client.get("/user")
         response.raise_for_status()
 
-        return response.json()
+        return GitHubUser.model_validate(response.json())
 
     def close(self) -> None:
         """Close the underlying HTTP client."""

@@ -1,2 +1,29 @@
-version: "3.9"
-services: {}
+services:
+  postgres:
+    image: postgres:17
+
+    container_name: pr-sentinel-postgres
+
+    environment:
+      POSTGRES_DB: pr_sentinel
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadminPR
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+
+volumes:
+  postgres_data:
