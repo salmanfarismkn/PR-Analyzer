@@ -24,3 +24,9 @@ class RepositoryResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RepositoryImportSummary(BaseModel):
+    imported: int
+    skipped: int
+    total: int
