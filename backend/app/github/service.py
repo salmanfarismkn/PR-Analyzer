@@ -4,7 +4,10 @@ from app.repository.models import Repository
 from app.repository.schemas import RepositoryImportSummary
 from app.github.client import GitHubClient
 from app.core.config import get_settings
-from app.repository.service import import_repositories
+
+from app.github.schemas import GitHubPullRequest
+from app.pull_request.schemas import PullRequestImportSummary
+
 
 class GitHubService:
     def __init__(self):
@@ -17,12 +20,6 @@ class GitHubService:
     def get_authenticated_user(self):
         return self._client.get_user()
 
-    def import_user_repositories(self, db: Session) -> RepositoryImportSummary:
-        # Fetch repositories from GitHub API
-        repos = self._client.list_repositories()
-        # Import them into DB
-        summary = import_repositories(db, repos)
-        return summary
 
     def list_repositories(self, db: Session) -> list[Repository]:
         # Query repositories stored in your DB
@@ -30,4 +27,14 @@ class GitHubService:
             db.scalars(
                 select(Repository).order_by(Repository.id)
             )
+        )
+
+    def list_pull_requests(
+        self,
+        owner: str,
+        repository: str,
+    ) -> list[GitHubPullRequest]:
+        return self._client.list_pull_requests(
+            owner,
+            repository,
         )

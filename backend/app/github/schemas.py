@@ -1,4 +1,7 @@
 from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel
 
 class GitHubOwner(BaseModel):
     id: int
@@ -26,3 +29,27 @@ class RepositoryImportSummary(BaseModel):
     imported: int
     skipped: int
     total: int
+
+
+class GitHubPullRequestUser(BaseModel):
+    login: str
+
+
+class GitHubPullRequestBranch(BaseModel):
+    ref: str
+
+
+class GitHubPullRequest(BaseModel):
+    id: int
+    number: int
+    title: str
+    state: str
+    draft: bool
+
+    user: GitHubPullRequestUser
+
+    base: GitHubPullRequestBranch
+    head: GitHubPullRequestBranch
+
+    created_at: datetime
+    updated_at: datetime

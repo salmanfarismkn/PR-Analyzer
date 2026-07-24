@@ -17,5 +17,25 @@ def main() -> None:
         for repository in repositories:
             print(repository.full_name)
 
+        repositories = client.list_repositories()
+
+        repository = repositories[0]
+
+        print(repository.full_name)
+
+        pull_requests = client.list_pull_requests(
+            repository.owner.login,
+            repository.name,
+        )
+
+        print(f"Total PRs: {len(pull_requests)}")
+
+        for pr in pull_requests:
+            print(
+                pr.number,
+                pr.title,
+                pr.state,
+            )
+
 if __name__ == "__main__":
     main()

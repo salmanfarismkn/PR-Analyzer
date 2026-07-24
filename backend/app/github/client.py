@@ -2,7 +2,7 @@ from __future__ import annotations
 from urllib import response
 
 import httpx
-
+from app.github.schemas import GitHubPullRequest
 from app.github.schemas import GitHubUser
 from app.github.schemas import GitHubRepository
 
@@ -59,4 +59,25 @@ class GitHubClient:
         return [
             GitHubRepository.model_validate(repo)
             for repo in response.json()
+        ]
+
+    def list_pull_requests(
+        self,
+        owner: str,
+        repository: str,
+    ) -> list[GitHubPullRequest]:
+
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/pulls",
+            params={
+                "state": "all",
+                "per_page": 100,
+            },
+        )
+
+        response.raise_for_status()
+
+        return [
+            GitHubPullRequest.model_validate(pr)
+            for pr in response.json()
         ]
