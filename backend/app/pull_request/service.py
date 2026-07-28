@@ -48,9 +48,11 @@ class PullRequestService:
         db.commit()
 
         return PullRequestImportSummary(
+            repository_id=repository_id,
             imported=imported,
             skipped=skipped,
             total=len(pull_requests),
+            details=[]   
         )
 
     def list_pull_requests(self, db: Session, repository_id: int) -> list[PullRequest]:

@@ -15,11 +15,18 @@ from sqlalchemy.orm import relationship
 from app.repository.models import Repository
 from typing import TYPE_CHECKING
 
+from app.commit.models import Commit
+
+
 if TYPE_CHECKING:
     from app.repository.models import Repository
 
+
+if TYPE_CHECKING:
+    from app.commit.models import Commit
+
 class PullRequest(BaseModel):
-    __tablename__ = "pull_request"
+    __tablename__ = "pull_requests"
 
     __table_args__ = (
         UniqueConstraint(
@@ -31,6 +38,8 @@ class PullRequest(BaseModel):
         Index("ix_pull_request_github_id", "github_id"),
         Index("ix_pull_request_state", "state"),
     )
+
+    id: Mapped[int] = mapped_column(primary_key=True) 
 
     github_id: Mapped[int] = mapped_column(
         BigInteger,
@@ -82,4 +91,9 @@ class PullRequest(BaseModel):
 
     repository: Mapped["Repository"] = relationship(
         back_populates="pull_requests",
+    )
+
+    commits: Mapped[list["Commit"]] = relationship(
+        back_populates="pull_request",
+        cascade="all, delete-orphan",
     )

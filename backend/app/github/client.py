@@ -5,6 +5,7 @@ import httpx
 from app.github.schemas import GitHubPullRequest
 from app.github.schemas import GitHubUser
 from app.github.schemas import GitHubRepository
+from app.github.schemas import GitHubCommit
 
 class GitHubClient:
     """Lightweight client for interacting with the GitHub REST API."""
@@ -80,4 +81,22 @@ class GitHubClient:
         return [
             GitHubPullRequest.model_validate(pr)
             for pr in response.json()
+        ]
+
+    def list_commits(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> list[GitHubCommit]:
+
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/pulls/{pull_number}/commits",
+        )
+
+        response.raise_for_status()
+
+        return [
+            GitHubCommit.model_validate(commit)
+            for commit in response.json()
         ]

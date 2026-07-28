@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
-
+from typing import List
 
 class PullRequestResponse(BaseModel):
     id: int
@@ -34,8 +34,8 @@ class PullRequestResponse(BaseModel):
 
 
 class PullRequestImportSummary(BaseModel):
-    imported: int
-
-    skipped: int
-
-    total: int
+    repository_id: int
+    imported: int = 0
+    skipped: int = 0
+    total: int = 0
+    details: List[dict] = []

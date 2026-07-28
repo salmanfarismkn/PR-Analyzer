@@ -21,20 +21,19 @@ pull_request_sync_service = PullRequestSyncService()
     response_model=PullRequestImportSummary,
     status_code=HTTPStatus.OK,
 )
-def import_pull_requests(
-    repository_id: int,
-    db: Session = Depends(get_db),
-) -> PullRequestImportSummary:
 
+def import_pull_requests(repository_id: int, db: Session = Depends(get_db)) -> PullRequestImportSummary:
     repository = db.get(Repository, repository_id)
-
     if repository is None:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Repository not found.",
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Repository not found.")
 
-    return pull_request_sync_service.import_pull_requests(
-        db=db,
-        repository=repository,
-    )
+    summary = pull_request_sync_service.import_pull_requests(db=db, repository=repository)
+    if summary is None:
+        return PullRequestImportSummary(
+            repository_id=repository_id,
+            imported=0,
+            skipped=0,
+            total=0,
+            details=[]
+        )
+    return summary

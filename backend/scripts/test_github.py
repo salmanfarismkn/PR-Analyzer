@@ -36,6 +36,30 @@ def main() -> None:
                 pr.title,
                 pr.state,
             )
+        repositories = client.list_repositories()
+
+        repository = repositories[0]
+
+        pull_requests = client.list_pull_requests(
+            repository.owner.login,
+            repository.name,
+        )
+        if not pull_requests:
+            print("No pull requests found for this repository.")
+            return
+        pull_request = pull_requests[0]
+
+        commits = client.list_commits(
+            repository.owner.login,
+            repository.name,
+            pull_request.number,
+        )
+
+        print(f"Total commits: {len(commits)}")
+
+        for commit in commits:
+            print(commit.sha)
+            print(commit.commit.message)
 
 if __name__ == "__main__":
     main()

@@ -29,7 +29,7 @@ def create(
     db: Session = Depends(get_db),
 ):
     try:
-        return repository_service.create(db, payload)
+        return repository_service.create_repository(db, payload)
     except RepositoryAlreadyExistsError as exc:
         raise HTTPException(
             status_code=409,

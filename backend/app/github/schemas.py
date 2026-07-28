@@ -53,3 +53,18 @@ class GitHubPullRequest(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+
+class GitHubCommitAuthor(BaseModel):
+    name: str
+    email: str
+    date: datetime
+
+
+class GitHubCommitInfo(BaseModel):
+    message: str
+    author: GitHubCommitAuthor
+
+
+class GitHubCommit(BaseModel):
+    sha: str
+    commit: GitHubCommitInfo

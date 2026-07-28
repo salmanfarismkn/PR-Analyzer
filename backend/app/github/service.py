@@ -7,6 +7,7 @@ from app.core.config import get_settings
 
 from app.github.schemas import GitHubPullRequest
 from app.pull_request.schemas import PullRequestImportSummary
+from app.github.schemas import GitHubCommit
 
 
 class GitHubService:
@@ -37,4 +38,16 @@ class GitHubService:
         return self._client.list_pull_requests(
             owner,
             repository,
+        )
+
+    def list_commits(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> list[GitHubCommit]:
+        return self._client.list_commits(
+            owner,
+            repository,
+            pull_number,
         )
