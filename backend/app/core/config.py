@@ -1,12 +1,24 @@
-from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "PR Analyzer"
-    debug: bool = False
+    app_name: str = "PR Sentinel"
+    debug: bool = True
+    database_url: str
+    github_api_url: str = "https://api.github.com"
+    github_token: str = ""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
 
-    class Config:
-        env_file = ".env"
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
 
 
-settings = Settings()
+settings = get_settings()

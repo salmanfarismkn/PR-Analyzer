@@ -8,3 +8,9 @@ class NotFoundError(PRAnalyzerError):
 
 class ValidationError(PRAnalyzerError):
     pass
+
+
+class RepositoryAlreadyExistsError(Exception):
+    """Raised when attempting to create a repository that already exists."""
+
+    pass
