@@ -10,6 +10,7 @@ from app.repository.schemas import (
 from app.repository.service import (
     create_repository,
     list_repositories,
+    import_repositories,
 )
 
 router = APIRouter(

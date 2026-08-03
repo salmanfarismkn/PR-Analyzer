@@ -1,9 +1,10 @@
 from __future__ import annotations
+from urllib import response
 
 import httpx
 
 from app.github.schemas import GitHubUser
-
+from app.github.schemas import GitHubRepository
 
 class GitHubClient:
     """Lightweight client for interacting with the GitHub REST API."""
@@ -43,3 +44,19 @@ class GitHubClient:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
+
+    def list_repositories(self) -> list[GitHubRepository]:
+        response = self._client.get(
+            "/user/repos",
+            params={
+                "sort": "updated",
+                "per_page": 100,
+            },
+        )
+        response.raise_for_status()
+
+
+        return [
+            GitHubRepository.model_validate(repo)
+            for repo in response.json()
+        ]
