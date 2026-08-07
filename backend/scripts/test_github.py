@@ -1,3 +1,5 @@
+from xmlrpc import client
+
 from app.core.config import Settings
 from app.github.client import GitHubClient
 
@@ -60,6 +62,19 @@ def main() -> None:
         for commit in commits:
             print(commit.sha)
             print(commit.commit.message)
+
+        files = client.list_changed_files(
+            repository.owner.login,
+            repository.name,
+            pull_request.number,
+        )
+
+        print(len(files))
+
+        for file in files:
+            print(file.filename)
+
+
 
 if __name__ == "__main__":
     main()

@@ -68,3 +68,13 @@ class GitHubCommitInfo(BaseModel):
 class GitHubCommit(BaseModel):
     sha: str
     commit: GitHubCommitInfo
+    
+
+class GitHubChangedFile(BaseModel):
+    filename: str
+    status: str
+    previous_filename: str | None = None
+    additions: int
+    deletions: int
+    changes: int
+    patch: str | None = None

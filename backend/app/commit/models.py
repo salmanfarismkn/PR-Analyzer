@@ -69,3 +69,9 @@ class Commit(BaseModel):
     pull_request: Mapped["PullRequest"] = relationship(
         back_populates="commits",
     )
+
+    changed_files = relationship(
+        "ChangedFile",
+        back_populates="commit",
+        cascade="all, delete-orphan"
+    )

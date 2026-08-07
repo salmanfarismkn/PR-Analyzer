@@ -5,7 +5,7 @@ from app.repository.schemas import RepositoryImportSummary
 from app.github.client import GitHubClient
 from app.core.config import get_settings
 
-from app.github.schemas import GitHubPullRequest
+from app.github.schemas import GitHubChangedFile, GitHubPullRequest
 from app.pull_request.schemas import PullRequestImportSummary
 from app.github.schemas import GitHubCommit
 
@@ -51,3 +51,11 @@ class GitHubService:
             repository,
             pull_number,
         )
+    
+    def list_changed_files(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> list[GitHubChangedFile]:
+        return self._client.list_changed_files(owner, repository, pull_number)

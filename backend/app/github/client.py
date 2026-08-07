@@ -1,8 +1,10 @@
 from __future__ import annotations
+from ast import List
 from urllib import response
 
+from fastapi import requests
 import httpx
-from app.github.schemas import GitHubPullRequest
+from app.github.schemas import GitHubChangedFile, GitHubPullRequest
 from app.github.schemas import GitHubUser
 from app.github.schemas import GitHubRepository
 from app.github.schemas import GitHubCommit
@@ -99,4 +101,17 @@ class GitHubClient:
         return [
             GitHubCommit.model_validate(commit)
             for commit in response.json()
-        ]
+    ]
+
+    def list_changed_files(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> List[GitHubChangedFile]:
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/pulls/{pull_number}/files"
+        )
+        response.raise_for_status()
+
+        return [GitHubChangedFile.model_validate(item) for item in response.json()]
