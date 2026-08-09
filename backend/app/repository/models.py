@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -10,7 +14,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
+from sqlalchemy.orm import relationship
 
+if TYPE_CHECKING:
+    from app.pull_request.models import PullRequest
 
 
 class Repository(BaseModel):
@@ -50,4 +57,9 @@ class Repository(BaseModel):
     is_private: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
+    )
+
+    pull_requests: Mapped[list["PullRequest"]] = relationship(
+        back_populates="repository",
+        cascade="all, delete-orphan",
     )
