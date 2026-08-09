@@ -4,6 +4,7 @@ from app.github.service import GitHubService
 from app.changed_file.service import ChangedFileService
 from app.changed_file.models import ChangedFile
 from app.changed_file.schemas import ChangedFileImportSummary
+from app import db
 
 
 class ChangedFileSyncService:
@@ -31,9 +32,12 @@ class ChangedFileSyncService:
 
         imported_files = self._changed_file_service.import_changed_files(
             db=db,
+            owner=owner,
+            repository=repository,
+            pull_number=pull_number,
             commit_id=commit_id,
-            github_files=github_files,
         )
+
 
         return ChangedFileImportSummary(
             commit_id=commit_id,
