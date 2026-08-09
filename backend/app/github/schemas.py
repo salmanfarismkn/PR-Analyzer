@@ -78,3 +78,24 @@ class GitHubChangedFile(BaseModel):
     deletions: int
     changes: int
     patch: str | None = None
+
+class GitHubReviewUser(BaseModel):
+    login: str
+
+
+class GitHubReview(BaseModel):
+    id: int
+    user: GitHubReviewUser | None
+    state: str
+    body: str | None
+    submitted_at: datetime | None
+
+
+class GitHubCheckRun(BaseModel):
+    id: int
+    name: str
+    status: str
+    conclusion: str | None
+    details_url: str | None
+    started_at: datetime | None
+    completed_at: datetime | None

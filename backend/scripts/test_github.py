@@ -2,6 +2,10 @@ from xmlrpc import client
 
 from app.core.config import Settings
 from app.github.client import GitHubClient
+from app import pull_request
+from app import repository
+from app import commit
+from app import changed_file
 
 settings = Settings()
 
@@ -73,6 +77,44 @@ def main() -> None:
 
         for file in files:
             print(file.filename)
+
+        reviews = client.list_reviews(
+            owner=repository.owner.login,
+            repository=repository.name,
+            pull_number=pull_request.number,
+        )
+
+        print(f"Total reviews: {len(reviews)}")
+
+        for review in reviews:
+            print(
+                review.id,
+                review.user.login if review.user else None,
+                review.state,
+            )
+
+        commits = client.list_commits(
+            owner=repository.owner.login,
+            repository=repository.name,
+            pull_number=pull_request.number,
+        )
+
+        latest_commit = commits[0]
+
+        check_runs = client.list_check_runs(
+            owner=repository.owner.login,
+            repository=repository.name,
+            ref=latest_commit.sha,
+        )
+
+        print(f"Total check runs: {len(check_runs)}")
+
+        for check in check_runs:
+            print(
+                check.name,
+                check.status,
+                check.conclusion,
+            )
 
 
 

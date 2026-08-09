@@ -19,6 +19,12 @@ from app.commit.models import Commit
 
 
 if TYPE_CHECKING:
+    from app.check.models import CheckRun
+
+if TYPE_CHECKING:
+    from app.review.models import Review
+
+if TYPE_CHECKING:
     from app.repository.models import Repository
 
 
@@ -94,6 +100,22 @@ class PullRequest(BaseModel):
     )
 
     commits: Mapped[list["Commit"]] = relationship(
+        back_populates="pull_request",
+        cascade="all, delete-orphan",
+    )
+
+    changed_files = relationship(
+        "ChangedFile",
+        back_populates="pull_request",
+        cascade="all, delete-orphan"
+    )
+
+    reviews: Mapped[list["Review"]] = relationship(
+        back_populates="pull_request",
+        cascade="all, delete-orphan",
+    )
+
+    check_runs: Mapped[list["CheckRun"]] = relationship(
         back_populates="pull_request",
         cascade="all, delete-orphan",
     )

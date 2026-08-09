@@ -8,6 +8,8 @@ from app.github.schemas import GitHubChangedFile, GitHubPullRequest
 from app.github.schemas import GitHubUser
 from app.github.schemas import GitHubRepository
 from app.github.schemas import GitHubCommit
+from app.github.schemas import GitHubReview
+from app.github.schemas import GitHubCheckRun
 
 class GitHubClient:
     """Lightweight client for interacting with the GitHub REST API."""
@@ -115,3 +117,41 @@ class GitHubClient:
         response.raise_for_status()
 
         return [GitHubChangedFile.model_validate(item) for item in response.json()]
+
+    def list_reviews(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> list[GitHubReview]:
+
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/pulls/{pull_number}/reviews",
+        )
+
+        response.raise_for_status()
+
+        return [
+            GitHubReview.model_validate(review)
+            for review in response.json()
+        ]
+
+    def list_check_runs(
+        self,
+        owner: str,
+        repository: str,
+        ref: str,
+    ) -> list[GitHubCheckRun]:
+
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/commits/{ref}/check-runs",
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        return [
+            GitHubCheckRun.model_validate(check_run)
+            for check_run in data.get("check_runs", [])
+        ]

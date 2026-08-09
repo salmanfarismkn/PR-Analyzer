@@ -3,29 +3,29 @@ from http import HTTPStatus
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.analysis.schemas import PullRequestMetrics
-from app.analysis.service import AnalysisService
+from app.application.review_sync import ReviewSyncService
 from app.db.session import get_db
 from app.pull_request.models import PullRequest
+from app.review.schemas import ReviewImportSummary
 
 
 router = APIRouter(
-    prefix="/analysis",
-    tags=["Analysis"],
+    prefix="/reviews",
+    tags=["Reviews"],
 )
 
-analysis_service = AnalysisService()
+review_sync_service = ReviewSyncService()
 
 
-@router.get(
-    "/{pull_request_id}",
-    response_model=PullRequestMetrics,
+@router.post(
+    "/import/{pull_request_id}",
+    response_model=ReviewImportSummary,
     status_code=HTTPStatus.OK,
 )
-def get_pull_request_metrics(
+def import_reviews(
     pull_request_id: int,
     db: Session = Depends(get_db),
-) -> PullRequestMetrics:
+) -> ReviewImportSummary:
 
     pull_request = db.get(
         PullRequest,
@@ -38,7 +38,7 @@ def get_pull_request_metrics(
             detail="Pull request not found.",
         )
 
-    return analysis_service.calculate_metrics(
+    return review_sync_service.import_reviews(
         db=db,
-        pull_request_id=pull_request_id,
+        pull_request=pull_request,
     )

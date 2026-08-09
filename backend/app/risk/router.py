@@ -3,29 +3,29 @@ from http import HTTPStatus
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.analysis.schemas import PullRequestMetrics
-from app.analysis.service import AnalysisService
 from app.db.session import get_db
 from app.pull_request.models import PullRequest
+from app.risk.schemas import PullRequestRisk
+from app.risk.service import RiskService
 
 
 router = APIRouter(
-    prefix="/analysis",
-    tags=["Analysis"],
+    prefix="/risk",
+    tags=["Risk Analysis"],
 )
 
-analysis_service = AnalysisService()
+risk_service = RiskService()
 
 
 @router.get(
-    "/{pull_request_id}",
-    response_model=PullRequestMetrics,
+    "/pull-request/{pull_request_id}",
+    response_model=PullRequestRisk,
     status_code=HTTPStatus.OK,
 )
-def get_pull_request_metrics(
+def analyze_pull_request(
     pull_request_id: int,
     db: Session = Depends(get_db),
-) -> PullRequestMetrics:
+) -> PullRequestRisk:
 
     pull_request = db.get(
         PullRequest,
@@ -38,7 +38,7 @@ def get_pull_request_metrics(
             detail="Pull request not found.",
         )
 
-    return analysis_service.calculate_metrics(
+    return risk_service.analyze_pull_request(
         db=db,
         pull_request_id=pull_request_id,
     )

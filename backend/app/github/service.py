@@ -8,6 +8,8 @@ from app.core.config import get_settings
 from app.github.schemas import GitHubChangedFile, GitHubPullRequest
 from app.pull_request.schemas import PullRequestImportSummary
 from app.github.schemas import GitHubCommit
+from app.github.schemas import GitHubReview
+from app.github.schemas import GitHubCheckRun
 
 
 class GitHubService:
@@ -59,3 +61,29 @@ class GitHubService:
         pull_number: int,
     ) -> list[GitHubChangedFile]:
         return self._client.list_changed_files(owner, repository, pull_number)
+
+    def list_reviews(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> list[GitHubReview]:
+
+        return self._client.list_reviews(
+            owner,
+            repository,
+            pull_number,
+        )
+
+    def list_check_runs(
+        self,
+        owner: str,
+        repository: str,
+        ref: str,
+    ) -> list[GitHubCheckRun]:
+
+        return self._client.list_check_runs(
+            owner,
+            repository,
+            ref,
+        )
