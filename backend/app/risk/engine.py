@@ -1,9 +1,16 @@
+from collections import defaultdict
+
 from app.analysis.schemas import PullRequestMetrics
-from app.risk.schemas import PullRequestRisk, RiskFactor
+from app.risk.rules import RISK_RULES, RISK_CATEGORIES
+from app.risk.schemas import (
+    PullRequestRisk,
+    RiskCategory,
+    RiskFactor,
+)
 
 
 class RiskEngine:
-    """Deterministic and explainable PR risk calculation."""
+    """Evaluates deterministic, explainable PR risk rules."""
 
     def calculate(
         self,
@@ -13,244 +20,82 @@ class RiskEngine:
 
         factors: list[RiskFactor] = []
 
-        change_size_score = self._change_size_score(metrics)
+        for rule in RISK_RULES:
+            result = rule.evaluate(metrics)
 
-        if change_size_score > 0:
+            if result is None:
+                continue
+
+            score, reason = result
+
+            score = min(
+                score,
+                rule.maximum_score,
+            )
+
+            severity = self._factor_severity(score)
+
+            recommendation = self._recommendation(
+                category=rule.category,
+                name=rule.name,
+            )
+
             factors.append(
                 RiskFactor(
-                    name="Change Size",
-                    score=change_size_score,
-                    reason=(
-                        f"{metrics.total_changes} lines changed "
-                        f"across {metrics.total_files} files."
-                    ),
+                    name=rule.name,
+                    category=rule.category,
+                    score=score,
+                    severity=severity,
+                    reason=reason,
+                    recommendation=recommendation,
                 )
             )
 
-        test_score = self._test_coverage_score(metrics)
+        categories = self._build_categories(factors)
 
-        if test_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Test Coverage",
-                    score=test_score,
-                    reason=(
-                        f"{metrics.source_files} source files changed "
-                        f"but only {metrics.test_files} test files changed."
-                    ),
-                )
-            )
-
-        config_score = self._configuration_score(metrics)
-
-        if config_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Configuration Changes",
-                    score=config_score,
-                    reason=(
-                        f"{metrics.config_files} configuration files "
-                        "were modified."
-                    ),
-                )
-            )
-
-        deletion_score = self._deletion_score(metrics)
-
-        if deletion_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Deleted Files",
-                    score=deletion_score,
-                    reason=(
-                        f"{metrics.deleted_files} files were deleted."
-                    ),
-                )
-            )
-
-        binary_score = self._binary_score(metrics)
-
-        if binary_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Binary Files",
-                    score=binary_score,
-                    reason=(
-                        f"{metrics.binary_files} binary files "
-                        "were modified."
-                    ),
-                )
-            )
-
-        score = min(
-            sum(factor.score for factor in factors),
+        total_score = min(
+            sum(
+                category.score
+                for category in categories
+            ),
             100,
         )
-        security_score = self._security_score(metrics)
-
-        if security_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Security-Sensitive Changes",
-                    score=security_score,
-                    reason=(
-                        f"{metrics.security_sensitive_files} "
-                        "security-sensitive files were modified."
-                    ),
-                )
-            )
-        dependency_score = self._dependency_score(metrics)
-
-        if dependency_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Dependency Changes",
-                    score=dependency_score,
-                    reason=(
-                        f"{metrics.dependency_files} dependency files "
-                        "were modified."
-                    ),
-                )
-            )
-
-        ci_score = self._ci_score(metrics)
-
-        if ci_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="CI Failures",
-                    score=ci_score,
-                    reason=(
-                        f"{metrics.failed_check_count} CI checks "
-                        "failed."
-                    ),
-                )
-            )
-
-        large_file_score = self._large_file_score(metrics)
-
-        if large_file_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Large Individual Change",
-                    score=large_file_score,
-                    reason=(
-                        f"The largest modified file contains "
-                        f"{metrics.largest_file_changes} line changes."
-                    ),
-                )
-            )
-        review_score = self._review_score(metrics)
-
-        if review_score > 0:
-            factors.append(
-                RiskFactor(
-                    name="Review Coverage",
-                    score=review_score,
-                    reason=(
-                        f"{metrics.review_count} reviews from "
-                        f"{metrics.unique_reviewer_count} reviewers."
-                    ),
-                )
-            )
+        overall_recommendation = self._overall_recommendation(
+            total_score,
+        )
 
         return PullRequestRisk(
             pull_request_id=pull_request_id,
-            score=score,
-            level=self._risk_level(score),
+            score=total_score,
+            level=self._risk_level(total_score),
+            categories=categories,
             factors=factors,
+            recommendation=overall_recommendation,
             metrics=metrics,
         )
 
     @staticmethod
-    def _change_size_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
+    def _build_categories(
+        factors: list[RiskFactor],
+    ) -> list[RiskCategory]:
 
-        changes = metrics.total_changes
-        files = metrics.total_files
+        category_scores: dict[str, int] = defaultdict(int)
+        category_factors: dict[str, list[str]] = defaultdict(list)
 
-        score = 0
+        for factor in factors:
+            category_scores[factor.category] += factor.score
+            category_factors[factor.category].append(
+                factor.name
+            )
 
-        if changes > 100:
-            score += 10
-
-        if changes > 300:
-            score += 10
-
-        if changes > 700:
-            score += 15
-
-        if changes > 1500:
-            score += 15
-
-        if files > 10:
-            score += 5
-
-        if files > 25:
-            score += 5
-
-        return min(score, 50)
-
-    @staticmethod
-    def _test_coverage_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-
-        if metrics.source_files == 0:
-            return 0
-
-        if metrics.test_files == 0:
-            return 20
-
-        ratio = metrics.test_files / metrics.source_files
-
-        if ratio < 0.25:
-            return 15
-
-        if ratio < 0.5:
-            return 8
-
-        return 0
-
-    @staticmethod
-    def _configuration_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-
-        if metrics.config_files >= 3:
-            return 15
-
-        if metrics.config_files > 0:
-            return 8
-
-        return 0
-
-    @staticmethod
-    def _deletion_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-
-        if metrics.deleted_files >= 5:
-            return 15
-
-        if metrics.deleted_files > 0:
-            return 8
-
-        return 0
-
-    @staticmethod
-    def _binary_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-
-        if metrics.binary_files >= 3:
-            return 10
-
-        if metrics.binary_files > 0:
-            return 5
-
-        return 0
+        return [
+            RiskCategory(
+                name=category,
+                score=category_scores[category],
+                factors=category_factors[category],
+            )
+            for category in RISK_CATEGORIES
+        ]
 
     @staticmethod
     def _risk_level(score: int) -> str:
@@ -264,90 +109,84 @@ class RiskEngine:
         return "low"
 
     @staticmethod
-    def _security_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-        if metrics.security_sensitive_files >= 3:
-            return 20
+    def _factor_severity(score: int) -> str:
 
-        if metrics.security_sensitive_files > 0:
-            return 12
+        if score >= 15:
+            return "high"
 
-        return 0
+        if score >= 8:
+            return "medium"
 
-    @staticmethod
-    def _dependency_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-        if metrics.dependency_files >= 2:
-            return 12
-
-        if metrics.dependency_files > 0:
-            return 8
-
-        return 0
+        return "low"
 
     @staticmethod
-    def _database_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-        if metrics.database_files >= 3:
-            return 15
+    def _recommendation(
+        category: str,
+        name: str,
+    ) -> str:
 
-        if metrics.database_files > 0:
-            return 10
+        recommendations = {
+            "Change Size": (
+                "Consider splitting this PR into smaller, "
+                "independently reviewable changes."
+            ),
 
-        return 0
+            "Large Individual File": (
+                "Review the large file carefully for hidden "
+                "complexity and consider splitting the change."
+            ),
+
+            "Security": (
+                "Request a security-focused review before merging "
+                "and verify authentication and authorization behavior."
+            ),
+
+            "Database": (
+                "Review migration safety, backward compatibility, "
+                "and rollback behavior before merging."
+            ),
+
+            "Dependencies": (
+                "Review dependency versions, transitive dependencies, "
+                "and known security vulnerabilities."
+            ),
+
+            "Testing": (
+                "Add or update tests covering the modified source "
+                "code before merging."
+            ),
+
+            "CI": (
+                "Investigate failed or pending CI checks before merging."
+            ),
+
+            "Reviews": (
+                "Obtain sufficient reviewer approval before merging "
+                "this change."
+            ),
+        }
+
+        return recommendations.get(
+            name,
+            "Review this change carefully before merging.",
+        )
 
     @staticmethod
-    def _ci_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
+    def _overall_recommendation(score: int) -> str:
 
-        if metrics.failed_check_count >= 3:
-            return 20
+        if score >= 70:
+            return (
+                "High-risk PR. Require thorough review and "
+                "verify CI before merging."
+            )
 
-        if metrics.failed_check_count > 0:
-            return 12
+        if score >= 40:
+            return (
+                "Moderate-risk PR. Review the identified risk "
+                "factors carefully before merging."
+            )
 
-        if metrics.pending_check_count > 0:
-            return 5
-
-        return 0
-
-    @staticmethod
-    def _large_file_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-        changes = metrics.largest_file_changes
-
-        if changes > 1000:
-            return 15
-
-        if changes > 500:
-            return 10
-
-        if changes > 250:
-            return 5
-
-        return 0
-
-    @staticmethod
-    def _review_score(
-        metrics: PullRequestMetrics,
-    ) -> int:
-
-        if metrics.total_files == 0:
-            return 0
-
-        if metrics.total_changes >= 300:
-            if metrics.unique_reviewer_count == 0:
-                return 15
-
-            if metrics.approved_review_count == 0:
-                return 10
-
-        if metrics.changes_requested_count > 0:
-            return 8
-
-        return 0
+        return (
+            "Low-risk PR. Standard review and CI validation "
+            "should be sufficient."
+        )

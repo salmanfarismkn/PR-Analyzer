@@ -39,3 +39,16 @@ class PullRequestImportSummary(BaseModel):
     skipped: int = 0
     total: int = 0
     details: List[dict] = []
+
+class PullRequestSchema(BaseModel):
+    id: int
+    number: int
+    title: str
+    state: str
+    merged: bool
+    merged_at: datetime | None
+    closed_at: datetime | None
+    repository_id: int
+
+    class Config:
+        orm_mode = True

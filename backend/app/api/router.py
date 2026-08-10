@@ -10,6 +10,7 @@ from app.changed_file.router import router as changed_file_router
 from app.risk.router import router as risk_router
 from app.review.router import router as review_router
 from app.check.router import router as check_router
+from app.webhook.router import router as webhook_router
 
 router = APIRouter()
 
@@ -23,3 +24,4 @@ router.include_router(changed_file_router)
 router.include_router(risk_router)
 router.include_router(review_router)
 router.include_router(check_router)
+router.include_router(webhook_router)

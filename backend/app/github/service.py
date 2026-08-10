@@ -87,3 +87,16 @@ class GitHubService:
             repository,
             ref,
         )
+
+    def get_pull_request(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> GitHubPullRequest:
+
+        return self._client.get_pull_request(
+            owner,
+            repository,
+            pull_number,
+        )

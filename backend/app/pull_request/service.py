@@ -41,6 +41,9 @@ class PullRequestService:
                     base_branch=pr.base.ref,
                     head_branch=pr.head.ref,
                     is_draft=pr.draft,
+                    merged=pr.merged,
+                    merged_at=pr.merged_at,
+                    closed_at=pr.closed_at,
                 )
             )
             imported += 1

@@ -155,3 +155,20 @@ class GitHubClient:
             GitHubCheckRun.model_validate(check_run)
             for check_run in data.get("check_runs", [])
         ]
+
+    def get_pull_request(
+        self,
+        owner: str,
+        repository: str,
+        pull_number: int,
+    ) -> GitHubPullRequest:
+
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/pulls/{pull_number}",
+        )
+
+        response.raise_for_status()
+
+        return GitHubPullRequest.model_validate(
+            response.json()
+        )
