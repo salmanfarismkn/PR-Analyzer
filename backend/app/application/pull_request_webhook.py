@@ -3,12 +3,19 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.application.pull_request_sync import (
+    PullRequestSyncService,
+)
 from app.pull_request.models import PullRequest
 from app.repository.models import Repository
 from app.webhook.schemas import PullRequestWebhookPayload
+from app import db
 
 
 class PullRequestWebhookService:
+
+    def __init__(self) -> None:
+        self._sync_service = PullRequestSyncService()
 
     def process(
         self,
@@ -26,8 +33,8 @@ class PullRequestWebhookService:
 
         repository = db.scalar(
             select(Repository).where(
-                Repository.github_id
-                == payload.repository.id
+                Repository.owner == payload.repository.owner["login"],
+                Repository.name == payload.repository.name,
             )
         )
 
@@ -48,16 +55,22 @@ class PullRequestWebhookService:
             pull_request = self._create_pull_request(
                 db=db,
                 repository=repository,
-                data=payload,
+                payload=payload,
             )
         else:
             self._update_pull_request(
                 pull_request=pull_request,
-                data=payload,
+                payload=payload,
             )
 
         db.commit()
         db.refresh(pull_request)
+
+        if payload.action == "synchronize":
+            self._sync_service.sync_pull_request(
+                db=db,
+                pull_request=pull_request,
+            )
 
         return pull_request
 
@@ -65,11 +78,12 @@ class PullRequestWebhookService:
     def _create_pull_request(
         db: Session,
         repository: Repository,
-        data: PullRequestWebhookPayload,
+        payload: PullRequestWebhookPayload,
     ) -> PullRequest:
 
-        github_pr = data.pull_request
+        github_pr = payload.pull_request
 
+# Create new PullRequest
         pull_request = PullRequest(
             repository_id=repository.id,
             github_id=github_pr.id,
@@ -84,24 +98,27 @@ class PullRequestWebhookService:
             merged_at=github_pr.merged_at,
             closed_at=github_pr.closed_at,
         )
-
         db.add(pull_request)
+
 
         return pull_request
 
     @staticmethod
     def _update_pull_request(
         pull_request: PullRequest,
-        data: PullRequestWebhookPayload,
+        payload: PullRequestWebhookPayload,
     ) -> None:
 
-        github_pr = data.pull_request
+# Update existing PullRequest
+        github_pr = payload.pull_request
 
         pull_request.number = github_pr.number
         pull_request.title = github_pr.title
-
+        pull_request.author = getattr(github_pr, "author", "unknown")
+        pull_request.base_branch = getattr(github_pr, "base_branch", "main")
+        pull_request.head_branch = getattr(github_pr, "head_branch", "unknown")
+        pull_request.is_draft = getattr(github_pr, "is_draft", False)
         pull_request.state = github_pr.state
         pull_request.merged = github_pr.merged
-
         pull_request.merged_at = github_pr.merged_at
         pull_request.closed_at = github_pr.closed_at

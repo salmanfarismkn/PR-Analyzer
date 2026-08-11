@@ -9,12 +9,18 @@ from app.pull_request.schemas import PullRequestImportSummary
 from app.pull_request.service import PullRequestService
 from app.repository.models import Repository
 from app.pull_request.models import PullRequest
+from app.commit.models import Commit
+from app.application.commit_sync import CommitSyncService
+from app import pull_request
+from app.changed_file.models import ChangedFile
+from app.commit.models import Commit
 
 
 class PullRequestSyncService:
     def __init__(self) -> None:
         self._github = GitHubService()
         self._pull_request_service = PullRequestService()
+        self._commit_service = CommitSyncService()
 
     def import_pull_requests(
         self,
@@ -104,3 +110,60 @@ class PullRequestSyncService:
         pull_request: PullRequest,
     ) -> None:
         return
+    
+    def _sync_changed_files(self, db: Session, pull_request: PullRequest) -> None:
+        # Fetch commits for this PR
+        commits = self._github.list_commits(
+            owner=pull_request.repository.owner,
+            repository=pull_request.repository.name,
+            pull_number=pull_request.number,
+        )
+
+        for commit in commits:
+            files = self._github.list_changed_files(
+                owner=pull_request.repository.owner,
+                repository=pull_request.repository.name,
+                pull_number=pull_request.number,
+            )
+
+            for file in files:
+                db.add(
+                    ChangedFile(
+                        commit_id=None,  # allowed if schema is updated
+                        pull_request_id=pull_request.id,
+                        filename=file.filename,
+                        status=file.status,
+                        additions=file.additions,
+                        deletions=file.deletions,
+                        changes=file.changes,
+                        patch=file.patch,
+                    )
+                )
+
+
+    def sync_pull_request(
+        self,
+        db: Session,
+        pull_request: PullRequest,
+    ) -> None:
+
+        commits = self._github.list_commits(
+            owner=pull_request.repository.owner,
+            repository=pull_request.repository.name,
+            pull_number=pull_request.number,
+        )
+
+        # delegate to CommitService instead of duplicating
+        self._commit_service.import_commits(
+            db=db,
+            pull_request=pull_request,
+        )
+
+
+
+        self._sync_changed_files(
+            db=db,
+            pull_request=pull_request,
+        )
+
+        db.commit()
