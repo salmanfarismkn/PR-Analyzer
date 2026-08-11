@@ -1,0 +1,79 @@
+from __future__ import annotations
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.pull_request.models import PullRequest
+from app.review.models import Review
+from app.webhook.schemas import (
+    PullRequestReviewWebhookPayload,
+)
+
+
+class ReviewWebhookService:
+
+    def process(
+        self,
+        db: Session,
+        payload: PullRequestReviewWebhookPayload,
+    ) -> Review | None:
+
+        if payload.action not in {
+            "submitted",
+            "edited",
+            "dismissed",
+        }:
+            return None
+
+        github_pr = payload.pull_request
+        github_review = payload.review
+
+        pull_request = db.scalar(
+            select(PullRequest).where(
+                PullRequest.github_id
+                == github_pr.id
+            )
+        )
+
+        if pull_request is None:
+            raise ValueError(
+                "Pull request from review webhook "
+                "does not exist locally."
+            )
+
+        review = db.scalar(
+            select(Review).where(
+                Review.github_id
+                == github_review.id
+            )
+        )
+
+        if review is None:
+            review = Review(
+                github_id=github_review.id,
+                pull_request_id=pull_request.id,
+                reviewer_login=github_review.user.login,
+                state=github_review.state,
+                body=github_review.body,
+                submitted_at=github_review.submitted_at,
+                html_url=github_review.html_url,
+            )
+
+            db.add(review)
+
+        else:
+            review.pull_request_id = pull_request.id
+            review.reviewer_login = (
+                github_review.user.login
+            )
+            review.state = github_review.state
+            review.body = github_review.body
+            review.submitted_at = (
+                github_review.submitted_at
+            )
+            review.html_url = github_review.html_url
+
+        db.commit()
+        db.refresh(review)
+
+        return review
