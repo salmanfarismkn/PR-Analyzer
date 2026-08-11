@@ -51,6 +51,8 @@ class GitHubPullRequest(BaseModel):
     base: GitHubPullRequestBranch
     head: GitHubPullRequestBranch
 
+    merged_at: datetime | None
+    closed_at: datetime | None
     created_at: datetime
     updated_at: datetime
 

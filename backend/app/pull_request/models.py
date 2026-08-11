@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -12,7 +14,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 from sqlalchemy.orm import relationship
 
-from app.repository.models import Repository
 from typing import TYPE_CHECKING
 
 from app.commit.models import Commit
@@ -30,6 +31,9 @@ if TYPE_CHECKING:
 
 if TYPE_CHECKING:
     from app.commit.models import Commit
+
+if TYPE_CHECKING:
+    from app.risk.models import RiskAssessment
 
 class PullRequest(BaseModel):
     __tablename__ = "pull_requests"
@@ -75,19 +79,17 @@ class PullRequest(BaseModel):
     )
 
     author: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
+        String(100), nullable=False, server_default="unknown"
     )
 
     base_branch: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
+        String(100), nullable=False, server_default="main"
     )
 
     head_branch: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
+        String(100), nullable=False, server_default="unknown"
     )
+
 
     is_draft: Mapped[bool] = mapped_column(
         Boolean,
@@ -119,3 +121,24 @@ class PullRequest(BaseModel):
         back_populates="pull_request",
         cascade="all, delete-orphan",
     )
+
+    risk_assessments: Mapped[list["RiskAssessment"]] = relationship(
+        back_populates="pull_request",
+        cascade="all, delete-orphan",
+    )
+
+    state: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="open",
+    )
+
+    merged: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    merged_at: Mapped[datetime | None] = mapped_column()
+
+    closed_at: Mapped[datetime | None] = mapped_column()
