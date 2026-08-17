@@ -28,7 +28,8 @@ if TYPE_CHECKING:
 if TYPE_CHECKING:
     from app.repository.models import Repository
 
-
+if TYPE_CHECKING:
+    from app.outcome.models import PullRequestOutcome
 
 
 if TYPE_CHECKING:
@@ -139,6 +140,12 @@ class PullRequest(BaseModel):
         Boolean,
         nullable=False,
         default=False,
+    )
+
+    outcome: Mapped["PullRequestOutcome | None"] = relationship(
+        back_populates="pull_request",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     merged_at: Mapped[datetime | None] = mapped_column()

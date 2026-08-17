@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.check.models import CheckRun
 from app.commit.models import Commit
 from app.webhook.schemas import CheckRunWebhookPayload
-
+from app.webhook.exceptions import WebhookDependencyPending
+from app import commit
 
 class CheckRunWebhookService:
 
@@ -32,9 +33,9 @@ class CheckRunWebhookService:
         )
 
         if commit is None:
-            raise ValueError(
-                "Commit from check-run webhook "
-                "does not exist locally."
+            raise WebhookDependencyPending(
+                f"Commit {check_data.head_sha} "
+                "has not been synchronized yet."
             )
 
         check_run = db.scalar(

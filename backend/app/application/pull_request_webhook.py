@@ -10,12 +10,18 @@ from app.pull_request.models import PullRequest
 from app.repository.models import Repository
 from app.webhook.schemas import PullRequestWebhookPayload
 from app import db
-
+from app.outcome.service import (
+    PullRequestOutcomeService,
+)
+from app import pull_request
 
 class PullRequestWebhookService:
 
     def __init__(self) -> None:
         self._sync_service = PullRequestSyncService()
+        self._outcome_service = (
+            PullRequestOutcomeService()
+        )
 
     def process(
         self,
@@ -65,6 +71,14 @@ class PullRequestWebhookService:
 
         db.commit()
         db.refresh(pull_request)
+        if (
+            payload.action == "closed"
+            and payload.pull_request.merged
+        ):
+            self._outcome_service.record_merge(
+                db=db,
+                pull_request=pull_request,
+            )
 
         if payload.action == "synchronize":
             self._sync_service.sync_pull_request(
@@ -122,3 +136,4 @@ class PullRequestWebhookService:
         pull_request.merged = github_pr.merged
         pull_request.merged_at = github_pr.merged_at
         pull_request.closed_at = github_pr.closed_at
+
