@@ -105,3 +105,56 @@ class CheckRunWebhookPayload(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
     )
+
+class GitHubPushCommit(BaseModel):
+    id: str
+    message: str
+
+    timestamp: datetime | None
+
+    author: dict | None
+    committer: dict | None
+
+    distinct: bool
+
+    added: list[str]
+    removed: list[str]
+    modified: list[str]
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+
+
+class GitHubPushHeadCommit(BaseModel):
+    id: str
+    message: str
+
+    timestamp: datetime | None
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+
+
+class PushWebhookPayload(BaseModel):
+    ref: str
+
+    before: str
+    after: str
+
+    repository: GitHubWebhookRepository
+
+    created: bool
+    deleted: bool
+    forced: bool
+
+    compare: str
+
+    commits: list[GitHubPushCommit]
+
+    head_commit: GitHubPushHeadCommit | None
+
+    model_config = ConfigDict(
+        extra="ignore",
+    )

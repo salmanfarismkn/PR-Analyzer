@@ -13,7 +13,10 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.webhook.dispatcher import WebhookDispatcher
 from app.webhook.service import WebhookService
-
+from app.webhook.exceptions import (
+    WebhookDependencyPending,
+)
+from app import db
 
 router = APIRouter(
     prefix="/webhooks",
@@ -93,6 +96,7 @@ async def github_webhook(
             db=db,
             event_type=x_github_event,
             payload=data,
+            delivery_id=x_github_delivery,
         )
 
         webhook_service.mark_processed(
@@ -100,7 +104,21 @@ async def github_webhook(
             event=event,
         )
 
+    except WebhookDependencyPending as exc:
+
+        webhook_service.mark_pending(
+            db=db,
+            event=event,
+            reason=str(exc),
+        )
+
+        return {
+            "status": "pending",
+            "reason": str(exc),
+        }
+
     except Exception as exc:
+
         webhook_service.mark_failed(
             db=db,
             event=event,
@@ -108,10 +126,12 @@ async def github_webhook(
         )
 
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail="Webhook processing failed.",
         ) from exc
- 
+
+    print("Event type:", request.headers.get("X-GitHub-Event"))
+
     return {
         "status": "processed",
         "event": x_github_event,

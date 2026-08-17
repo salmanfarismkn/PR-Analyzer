@@ -74,6 +74,18 @@ class WebhookService:
 
         return event
 
+    def mark_pending(
+        self,
+        db: Session,
+        event: WebhookEvent,
+        reason: str,
+    ) -> None:
+
+        event.status = "pending"
+        event.error_message = reason
+
+        db.commit()
+        
     def mark_processing(
         self,
         db: Session,
