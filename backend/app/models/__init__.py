@@ -5,6 +5,8 @@ from app.risk.models import RiskAssessment
 from app.webhook.models import WebhookEvent
 from app.outcome.models import PullRequestOutcome
 from app.push.models import PushEvent
+from app.outcome.revert_models import RevertEvent
+from app.feature.models import PRFeatureSnapshot
 
 __all__ = [
     "Base",
@@ -15,4 +17,6 @@ __all__ = [
     "WebhookEvent",
     "PullRequestOutcome",
     "PushEvent",
+    "RevertEvent",
+    "PRFeatureSnapshot",
 ]

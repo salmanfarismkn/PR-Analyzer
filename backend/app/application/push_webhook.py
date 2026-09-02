@@ -6,9 +6,23 @@ from sqlalchemy.orm import Session
 from app.push.models import PushEvent
 from app.repository.models import Repository
 from app.webhook.schemas import PushWebhookPayload
-
+from app import repository
+from app.application.push_commit_linker import (
+    PushCommitLinker,
+)
+from app.application.revert_detection import (
+    RevertDetectionService,
+)
+from app import db
+from app.commit.models import Commit
+from app.commit.service import CommitService
 
 class PushWebhookService:
+
+    def __init__(self) -> None:
+        self._commit_linker = PushCommitLinker()
+        self._revert_detection = RevertDetectionService()
+        self._commit_service = CommitService()
 
     def process(
         self,
@@ -31,9 +45,7 @@ class PushWebhookService:
             )
 
         existing = db.scalar(
-            select(PushEvent).where(
-                PushEvent.delivery_id == delivery_id
-            )
+            select(PushEvent).where(PushEvent.delivery_id == delivery_id)
         )
         if existing is not None:
             return existing
@@ -49,11 +61,44 @@ class PushWebhookService:
             after_sha=payload.after,
             ref=payload.ref,
             commit_count=len(payload.commits),
+            commit_shas=[commit.id for commit in payload.commits],
             head_commit_message=head_commit_message,
         )
+
+        # Ensure commits are imported before revert detection
+        self._sync_push_commits(db=db, repository=repository, payload=payload)
+
+        for commit_sha in push_event.commit_shas:
+            self._revert_detection.inspect_commit(
+                db=db,
+                repository_owner=repository.owner,
+                repository_name=repository.name,
+                commit_sha=commit_sha,
+            )
 
         db.add(push_event)
         db.commit()
         db.refresh(push_event)
 
+        existing_commits = self._commit_linker.find_existing_commits(
+            db=db,
+            push_event=push_event,
+        )
+
+        print("Push commits already synchronized:", len(existing_commits))
+
         return push_event
+
+    def _sync_push_commits(
+        self,
+        db: Session,
+        repository: Repository,
+        payload: PushWebhookPayload,
+    ) -> None:
+        # Delegate commit creation to the existing CommitService
+        self._commit_service.import_commits(
+            db=db,
+            pull_request_id=None,  # push events don’t prove PR linkage
+            commits=payload.commits,
+        )
+

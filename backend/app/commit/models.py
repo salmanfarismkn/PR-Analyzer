@@ -41,7 +41,7 @@ class Commit(BaseModel):
             "pull_requests.id",
             ondelete="CASCADE",
         ),
-        nullable=False,
+        nullable=True,
     )
 
     sha: Mapped[str] = mapped_column(

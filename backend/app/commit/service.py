@@ -14,7 +14,7 @@ class CommitService:
     def import_commits(
         self,
         db: Session,
-        pull_request_id: int,
+        pull_request_id: int | None,
         commits: list[GitHubCommit],
     ) -> CommitImportSummary:
 
@@ -30,6 +30,19 @@ class CommitService:
         for commit in commits:
 
             if commit.sha in existing_shas:
+                existing_commit = db.scalar(
+                    select(Commit).where(
+                        Commit.sha == commit.sha
+                    )
+                )
+
+                if (
+                    existing_commit is not None
+                    and existing_commit.pull_request_id is None
+                    and pull_request_id is not None
+                ):
+                    existing_commit.pull_request_id = pull_request_id
+
                 skipped += 1
                 continue
 

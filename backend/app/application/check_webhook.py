@@ -7,9 +7,14 @@ from app.check.models import CheckRun
 from app.commit.models import Commit
 from app.webhook.schemas import CheckRunWebhookPayload
 from app.webhook.exceptions import WebhookDependencyPending
-from app import commit
+from app.pull_request.models import PullRequest
+from app.feature.service import PRFeatureService
+from app.application.outcome_evaluation import evaluate_pull_request_outcome
 
 class CheckRunWebhookService:
+
+    def __init__(self) -> None:
+        self._feature_service = PRFeatureService()
 
     def process(
         self,
@@ -55,14 +60,9 @@ class CheckRunWebhookService:
                 started_at=check_data.started_at,
                 completed_at=check_data.completed_at,
             )
-
             db.add(check_run)
-
         else:
-            check_run.pull_request_id = (
-                commit.pull_request_id
-            )
-
+            check_run.pull_request_id = commit.pull_request_id
             check_run.name = check_data.name
             check_run.status = check_data.status
             check_run.conclusion = check_data.conclusion
@@ -73,4 +73,17 @@ class CheckRunWebhookService:
         db.commit()
         db.refresh(check_run)
 
+    
+        pull_request = db.get(PullRequest, check_run.pull_request_id)
+
+        if pull_request is not None:
+            self._feature_service.create_snapshot(
+                db=db,
+                pull_request=pull_request,
+            )
+            
+        evaluate_pull_request_outcome(
+            db=db,
+            pull_request_id=pull_request.id,
+        )
         return check_run

@@ -172,3 +172,17 @@ class GitHubClient:
         return GitHubPullRequest.model_validate(
             response.json()
         )
+
+    def get_commit(
+        self,
+        owner: str,
+        repository: str,
+        sha: str,
+    ):
+        response = self._client.get(
+            f"/repos/{owner}/{repository}/commits/{sha}",
+        )
+
+        response.raise_for_status()
+
+        return response.json()
