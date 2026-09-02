@@ -8,9 +8,13 @@ from app.review.models import Review
 from app.webhook.schemas import (
     PullRequestReviewWebhookPayload,
 )
-
+from app.feature.service import PRFeatureService
+from app.application.outcome_evaluation import evaluate_pull_request_outcome
 
 class ReviewWebhookService:
+
+    def __init__(self) -> None:
+        self._feature_service = PRFeatureService()
 
     def process(
         self,
@@ -30,8 +34,7 @@ class ReviewWebhookService:
 
         pull_request = db.scalar(
             select(PullRequest).where(
-                PullRequest.github_id
-                == github_pr.id
+                PullRequest.github_id == github_pr.id
             )
         )
 
@@ -43,8 +46,7 @@ class ReviewWebhookService:
 
         review = db.scalar(
             select(Review).where(
-                Review.github_id
-                == github_review.id
+                Review.github_id == github_review.id
             )
         )
 
@@ -58,22 +60,27 @@ class ReviewWebhookService:
                 submitted_at=github_review.submitted_at,
                 html_url=github_review.html_url,
             )
-
             db.add(review)
-
         else:
             review.pull_request_id = pull_request.id
-            review.reviewer_login = (
-                github_review.user.login
-            )
+            review.reviewer_login = github_review.user.login
             review.state = github_review.state
             review.body = github_review.body
-            review.submitted_at = (
-                github_review.submitted_at
-            )
+            review.submitted_at = github_review.submitted_at
             review.html_url = github_review.html_url
 
         db.commit()
         db.refresh(review)
+
+        
+        self._feature_service.create_snapshot(
+            db=db,
+            pull_request=pull_request,
+        )
+
+        evaluate_pull_request_outcome(
+            db=db,
+            pull_request_id=pull_request.id,
+        )
 
         return review

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import JSON, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -46,9 +46,16 @@ class PushEvent(BaseModel):
         default=0,
     )
 
+    commit_shas: Mapped[list] = mapped_column(
+        JSON,
+        nullable=True,
+        default=list,
+    )
+
     head_commit_message: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
     repository: Mapped["Repository"] = relationship()
+

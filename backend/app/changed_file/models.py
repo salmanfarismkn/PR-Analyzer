@@ -31,7 +31,7 @@ class ChangedFile(BaseModel):
 
     commit_id: Mapped[int] = mapped_column(
         ForeignKey("commits.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,  # Allow nullable for cases where the commit might not be present
     )
 
     pull_request_id: Mapped[int] = mapped_column(

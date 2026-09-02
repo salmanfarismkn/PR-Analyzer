@@ -11,17 +11,29 @@ from app.repository.models import Repository
 from app.webhook.schemas import PullRequestWebhookPayload
 from app import db
 from app.outcome.service import (
-    PullRequestOutcomeService,
+    OutcomeEvaluator,
 )
 from app import pull_request
+from app.feature.service import PRFeatureService
+from app.application.outcome_evaluation import (
+    evaluate_pull_request_outcome,
+)
+
+SNAPSHOT_EVENTS = {
+    "opened",
+    "synchronize",
+    "reopened",
+    "closed",
+    "review_requested",
+}
 
 class PullRequestWebhookService:
 
     def __init__(self) -> None:
         self._sync_service = PullRequestSyncService()
-        self._outcome_service = (
-            PullRequestOutcomeService()
-        )
+        self._outcome_service = OutcomeEvaluator()
+        self._feature_service = PRFeatureService()
+
 
     def process(
         self,
@@ -46,14 +58,12 @@ class PullRequestWebhookService:
 
         if repository is None:
             raise ValueError(
-                "Repository from webhook "
-                "does not exist locally."
+                "Repository from webhook does not exist locally."
             )
 
         pull_request = db.scalar(
             select(PullRequest).where(
-                PullRequest.github_id
-                == payload.pull_request.id
+                PullRequest.github_id == payload.pull_request.id
             )
         )
 
@@ -71,6 +81,18 @@ class PullRequestWebhookService:
 
         db.commit()
         db.refresh(pull_request)
+
+        # Synchronize the PR when new commits arrive.
+        if payload.action == "synchronize":
+            self._sync_service.sync_pull_request(
+                db=db,
+                pull_request=pull_request,
+            )
+
+            db.commit()
+            db.refresh(pull_request)
+
+        # Record merge outcome.
         if (
             payload.action == "closed"
             and payload.pull_request.merged
@@ -80,13 +102,21 @@ class PullRequestWebhookService:
                 pull_request=pull_request,
             )
 
-        if payload.action == "synchronize":
-            self._sync_service.sync_pull_request(
+        # Build/update feature snapshot.
+        if payload.action in SNAPSHOT_EVENTS:
+            self._feature_service.create_snapshot(
                 db=db,
                 pull_request=pull_request,
             )
 
+        # Evaluate the latest available outcome evidence.
+        evaluate_pull_request_outcome(
+            db=db,
+            pull_request_id=pull_request.id,
+        )
+
         return pull_request
+
 
     @staticmethod
     def _create_pull_request(
@@ -97,7 +127,7 @@ class PullRequestWebhookService:
 
         github_pr = payload.pull_request
 
-# Create new PullRequest
+
         pull_request = PullRequest(
             repository_id=repository.id,
             github_id=github_pr.id,
@@ -123,7 +153,7 @@ class PullRequestWebhookService:
         payload: PullRequestWebhookPayload,
     ) -> None:
 
-# Update existing PullRequest
+
         github_pr = payload.pull_request
 
         pull_request.number = github_pr.number

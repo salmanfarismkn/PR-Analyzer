@@ -100,3 +100,15 @@ class GitHubService:
             repository,
             pull_number,
         )
+
+    def get_commit(
+        self,
+        owner: str,
+        repository: str,
+        sha: str,
+    ):
+        return self._client.get_commit(
+            owner=owner,
+            repository=repository,
+            sha=sha,
+        )

@@ -109,7 +109,6 @@ class CheckRunWebhookPayload(BaseModel):
 class GitHubPushCommit(BaseModel):
     id: str
     message: str
-
     timestamp: datetime | None
 
     author: dict | None
@@ -124,6 +123,27 @@ class GitHubPushCommit(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
     )
+
+    @property
+    def sha(self) -> str:
+        return self.id
+
+    @property
+    def commit(self):
+        # Provide a nested object-like interface similar to GitHubCommit
+        class Author:
+            def __init__(self, data: dict | None, timestamp: datetime | None):
+                self.name = data.get("name") if data else None
+                self.email = data.get("email") if data else None
+                self.date = timestamp
+
+        class CommitInfo:
+            def __init__(self, message: str, author: dict | None, timestamp: datetime | None):
+                self.message = message
+                self.author = Author(author, timestamp)
+
+        return CommitInfo(self.message, self.author, self.timestamp)
+
 
 
 class GitHubPushHeadCommit(BaseModel):
