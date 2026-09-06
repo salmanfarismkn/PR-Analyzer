@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import Column, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -19,7 +19,18 @@ class PullRequestOutcome(BaseModel):
         nullable=False,
         unique=True,
     )
+    lifecycle_status = Column(
+        String,
+        nullable=False,
+        default="pending",
+    )
 
+    outcome = Column(
+        String,
+        nullable=False,
+        default="uncertain",
+    )
+    
     status: Mapped[str] = mapped_column(
         String(30),
         nullable=False,

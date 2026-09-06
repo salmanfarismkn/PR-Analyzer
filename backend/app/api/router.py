@@ -13,6 +13,7 @@ from app.check.router import router as check_router
 from app.webhook.router import router as webhook_router
 from app.feature.router import router as feature_router
 from app.outcome.router import router as outcome_router
+from app.dataset.router import router as dataset_router
 
 router = APIRouter()
 
@@ -29,3 +30,4 @@ router.include_router(check_router)
 router.include_router(webhook_router)
 router.include_router(feature_router)
 router.include_router(outcome_router)
+router.include_router(dataset_router)

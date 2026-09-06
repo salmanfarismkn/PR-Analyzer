@@ -97,10 +97,11 @@ class PullRequestWebhookService:
             payload.action == "closed"
             and payload.pull_request.merged
         ):
-            self._outcome_service.record_merge(
+            self._outcome_service.evaluate(
                 db=db,
                 pull_request=pull_request,
             )
+
 
         # Build/update feature snapshot.
         if payload.action in SNAPSHOT_EVENTS:

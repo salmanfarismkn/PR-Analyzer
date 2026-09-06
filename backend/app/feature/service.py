@@ -14,6 +14,7 @@ from app.feature.schemas import PRFeatureSnapshot
 from app.feature.models import PRFeatureSnapshot as PRFeatureSnapshotModel
 
 
+
 class PRFeatureService:
 
     def build_snapshot(

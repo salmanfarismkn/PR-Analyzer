@@ -9,6 +9,8 @@ from app import changed_file
 
 settings = Settings()
 
+#gh webhook forward --repo=azuzm/event-checker --events=pull_request,push,check_run --url=http://127.0.0.1:8000/webhooks/github --secret=13579246810
+
 def main() -> None:
     with GitHubClient(
         base_url=settings.github_api_url,

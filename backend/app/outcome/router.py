@@ -39,7 +39,8 @@ def evaluate_pull_request(
     return {
         "id": outcome.id,
         "pull_request_id": outcome.pull_request_id,
-        "status": outcome.status,
+        "lifecycle_status": outcome.lifecycle_status,
+        "outcome": outcome.outcome,
         "reason": outcome.reason,
         "merged_at": outcome.merged_at,
         "observed_at": outcome.observed_at,
