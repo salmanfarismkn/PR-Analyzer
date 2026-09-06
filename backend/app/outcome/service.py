@@ -6,7 +6,7 @@ from app.check.models import CheckRun
 from app.outcome.models import PullRequestOutcome
 from app.pull_request.models import PullRequest
 from app.review.models import Review
-
+from app.outcome.revert_models import RevertEvent
 
 class OutcomeEvaluator:
 
@@ -30,24 +30,37 @@ class OutcomeEvaluator:
             )
             db.add(outcome)
 
-        # -------------------------------------------------
-        # 1. Determine merge state
-        # -------------------------------------------------
-
         merged = getattr(pull_request, "merged", False)
 
-        merged_at = getattr(pull_request, "merged_at", None)
+        merged_at = getattr(
+            pull_request,
+            "merged_at",
+            None,
+        )
+
+        state = getattr(
+            pull_request,
+            "state",
+            None,
+        )
+
+        # -----------------------------------------
+        # Lifecycle
+        # -----------------------------------------
 
         if merged:
-            outcome.status = "merged"
+            outcome.lifecycle_status = "merged"
             outcome.merged_at = merged_at
 
-        else:
-            outcome.status = "pending"
+        elif state == "closed":
+            outcome.lifecycle_status = "closed"
 
-        # -------------------------------------------------
-        # 2. Check CI results
-        # -------------------------------------------------
+        else:
+            outcome.lifecycle_status = "pending"
+
+        # -----------------------------------------
+        # CI evidence
+        # -----------------------------------------
 
         checks = (
             db.query(CheckRun)
@@ -60,7 +73,11 @@ class OutcomeEvaluator:
         failed_checks = 0
 
         for check in checks:
-            conclusion = getattr(check, "conclusion", None)
+            conclusion = getattr(
+                check,
+                "conclusion",
+                None,
+            )
 
             if conclusion in {
                 "failure",
@@ -70,9 +87,9 @@ class OutcomeEvaluator:
             }:
                 failed_checks += 1
 
-        # -------------------------------------------------
-        # 3. Review signals
-        # -------------------------------------------------
+        # -----------------------------------------
+        # Review evidence
+        # -----------------------------------------
 
         reviews = (
             db.query(Review)
@@ -82,29 +99,48 @@ class OutcomeEvaluator:
             .all()
         )
 
-        change_requests = 0
+        change_requests = sum(
+            1
+            for review in reviews
+            if getattr(review, "state", None)
+            == "CHANGES_REQUESTED"
+        )
+        # -----------------------------------------
+        # Revert evidence
+        # -----------------------------------------
 
-        for review in reviews:
-            state = getattr(review, "state", None)
+        revert_event = (
+            db.query(RevertEvent)
+            .filter(
+                RevertEvent.pull_request_id == pull_request.id
+            )
+            .first()
+        )
 
-            if state == "CHANGES_REQUESTED":
-                change_requests += 1
+        was_reverted = revert_event is not None
+        # -----------------------------------------
+        # Quality classification
+        # -----------------------------------------
 
-        # -------------------------------------------------
-        # 4. Determine outcome
-        # -------------------------------------------------
+        if not merged:
+            outcome.outcome = "uncertain"
+            outcome.reason = "PR has not been merged"
 
-        if merged:
+        elif was_reverted:
+            outcome.outcome = "problematic"
+            outcome.reason = "PR was later reverted"
 
-            if failed_checks > 0 or change_requests > 0:
-                outcome.reason = (
-                    "Merged PR with CI failures or requested changes"
-                )
-            else:
-                outcome.reason = "Merged successfully"
+        elif failed_checks > 0:
+            outcome.outcome = "problematic"
+            outcome.reason = "Merged PR had CI failures"
+
+        elif change_requests > 0:
+            outcome.outcome = "problematic"
+            outcome.reason = "Merged PR had requested changes"
 
         else:
-            outcome.reason = "PR has not been merged yet"
+            outcome.outcome = "healthy"
+            outcome.reason = "Merged without detected problems"
 
         outcome.observed_at = datetime.now(timezone.utc)
 
