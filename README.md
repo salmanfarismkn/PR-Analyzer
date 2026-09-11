@@ -1,4 +1,4 @@
-# PR-Analyzer
+# PR Outcome Engine
 
 This repository has been scaffolded with the requested project structure.
 
